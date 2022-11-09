@@ -1,15 +1,16 @@
 #pragma once
 #include "../common/actor.hpp"
 
-#include <cstdio>
+#include <iostream>
 
 class MyActor : public Actor {
+
 	auto update() -> void override {
-		printf("Update from MyActor\n");
+		std::cout << "Update from MyActor\n";
 	}
 
 	auto draw() -> void override {
-		printf("Draw from MyActor\n");
+		std::cout << "Draw from MyActor\n";
 	}
 };
 

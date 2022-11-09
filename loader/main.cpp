@@ -16,7 +16,7 @@ auto recompile() -> void {
 	system("cd ../dynamic && mv -f my_actor_tmp.so my_actor.so");
 }
 
-struct ActorMeta {
+struct ActorDynLib {
 	void* handle = nullptr;
 	CreateActorFn create = nullptr;
 	DestroyActorFn destroy = nullptr;
@@ -33,20 +33,20 @@ struct ActorMeta {
 	}
 };
 
-auto loadActorMeta(std::string_view path) {
+auto loadActorDynLib(std::string_view path) -> ActorDynLib {
 	auto handle = dlopen(path.data(), RTLD_NOW | RTLD_LOCAL);
 	if(!handle) {
-		return ActorMeta{};
+		return ActorDynLib{};
 	}
 	auto create = (CreateActorFn)dlsym(handle, "create");
 	auto destroy = (DestroyActorFn)dlsym(handle, "destroy");
 	
 	if(create == nullptr || destroy == nullptr) {
 		dlclose(handle);
-		return ActorMeta{};
+		return ActorDynLib{};
 	}
 
-	return ActorMeta{
+	return ActorDynLib{
 		.handle = handle,
 		.create = create,
 		.destroy = destroy,
@@ -55,8 +55,8 @@ auto loadActorMeta(std::string_view path) {
 
 auto main() -> int {
 
-	auto meta = loadActorMeta(libPath);
-	if(!meta.ok()) {
+	auto actorDynLib = loadActorDynLib(libPath);
+	if(!actorDynLib.ok()) {
 		std::cerr << "Could not open handle " << dlerror() << '\n';
 		return 1;
 	}
@@ -65,24 +65,21 @@ auto main() -> int {
 	auto watcher = FsWatcher{};
 	watcher.watch(headerPath);
 
-	auto actor = meta.create();
+	auto actor = actorDynLib.create();
 
 	while(true) {
 		if(watcher.hasChanged()) {
-			std::cerr << "Deleting old actor " << std::hex << (uint64_t)actor << '\n';
-			meta.destroy(actor);
-			std::cerr << "Freeing handle\n";
-			meta.free();
-			std::cerr << "Recompiling\n";
+
+			actorDynLib.destroy(actor);
+			actorDynLib.free();
 			recompile();
 
-			std::cout << "Reloading lib!\n";
-			auto meta = loadActorMeta(libPath);
-			if(!meta.ok()) {
+			actorDynLib = loadActorDynLib(libPath);
+			if(!actorDynLib.ok()) {
 				std::cerr << "Could not reload handle " << dlerror() << '\n';
 				return 2;
 			}
-			actor = meta.create();
+			actor = actorDynLib.create();
 		}
 
 		actor->update();
@@ -90,6 +87,6 @@ auto main() -> int {
 		std::this_thread::sleep_for(tickRate);
 	}
 
-	meta.destroy(actor);
-	meta.free();
+	actorDynLib.destroy(actor);
+	actorDynLib.free();
 }

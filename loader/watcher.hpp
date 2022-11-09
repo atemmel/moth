@@ -6,8 +6,8 @@
 class FsWatcher {
 public:
 
-	auto watch(std::string_view path) -> void {
-		this->path = path;
+	auto watch(std::string_view pathToWatch) -> void {
+		path = pathToWatch;
 		previous = read();
 	}
 
