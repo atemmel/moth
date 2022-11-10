@@ -5,15 +5,16 @@
 
 #include <chrono>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <thread>
 
-constexpr auto headerPath = std::string_view("../dynamic/my_actor.hpp");
-constexpr auto libPath = std::string_view("../dynamic/my_actor.so");
+const std::string hppPath = "../dynamic/MyActor.hpp";
+const std::string libPath = "../dynamic/moth_dynlib.so";
 
 auto recompile() -> void {
-	system("cd ../dynamic && ./make_dyn.sh my_actor_tmp.so");
-	system("cd ../dynamic && mv -f my_actor_tmp.so my_actor.so");
+	system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
+	system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
 }
 
 struct ActorDynLib {
@@ -33,14 +34,27 @@ struct ActorDynLib {
 	}
 };
 
-auto loadActorDynLib(std::string_view path) -> ActorDynLib {
-	auto handle = dlopen(path.data(), RTLD_NOW | RTLD_LOCAL);
+auto getDynLibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
+	size_t last = hppname.find_last_of('.');
+	size_t first = hppname.find_last_of('/') + 1;
+	auto base = hppname.substr(first, last - first);
+	return prefix + base;
+}
+
+auto loadActorDynLib(const std::string& lib, const std::string& hpp) -> ActorDynLib {
+	std::cerr << "Trying to load " <<  lib << '\n';
+	auto handle = dlopen(lib.data(), RTLD_NOW | RTLD_LOCAL);
 	if(!handle) {
 		return ActorDynLib{};
 	}
-	auto create = (CreateActorFn)dlsym(handle, "create");
-	auto destroy = (DestroyActorFn)dlsym(handle, "destroy");
+
+	auto createStr = getDynLibFnStr(hpp, "create_");
+	auto destroyStr = getDynLibFnStr(hpp, "destroy_");
+
+	auto create = (CreateActorFn)dlsym(handle, createStr.c_str());
+	auto destroy = (DestroyActorFn)dlsym(handle, destroyStr.c_str());
 	
+	std::cerr << createStr << " : " << destroyStr <<  '\n';
 	if(create == nullptr || destroy == nullptr) {
 		dlclose(handle);
 		return ActorDynLib{};
@@ -54,8 +68,8 @@ auto loadActorDynLib(std::string_view path) -> ActorDynLib {
 }
 
 auto main() -> int {
-
-	auto actorDynLib = loadActorDynLib(libPath);
+	recompile();
+	auto actorDynLib = loadActorDynLib(libPath, hppPath);
 	if(!actorDynLib.ok()) {
 		std::cerr << "Could not open handle " << dlerror() << '\n';
 		return 1;
@@ -63,7 +77,7 @@ auto main() -> int {
 
 	const auto tickRate = std::chrono::milliseconds(1000);
 	auto watcher = FsWatcher{};
-	watcher.watch(headerPath);
+	watcher.watch(hppPath);
 
 	auto actor = actorDynLib.create();
 
@@ -74,7 +88,7 @@ auto main() -> int {
 			actorDynLib.free();
 			recompile();
 
-			actorDynLib = loadActorDynLib(libPath);
+			actorDynLib = loadActorDynLib(libPath, hppPath);
 			if(!actorDynLib.ok()) {
 				std::cerr << "Could not reload handle " << dlerror() << '\n';
 				return 2;

@@ -14,4 +14,4 @@ class MyActor : public Actor {
 	}
 };
 
-ExportActorMacro(MyActor)
+ExportActorHppMacro(MyActor);
