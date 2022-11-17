@@ -2,11 +2,21 @@
 #include "../moth/moth.hpp"
 
 #include <cmath>
-#include <iostream>
 
-class MyActor : public Moth::Actor {
+struct MyActor : public Moth::Actor {
+
+	int i, j;
+	std::string name;
+
+	SERIALIZE(MyActor, i, j, name);
+
+	MyActor() 
+		: i(1), j(2), name("gamers") {
+
+	}
 
 	auto update() -> void override {
+		std::cout << (*this) << '\n';
 	}
 
 	auto draw() -> void override {

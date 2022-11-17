@@ -2,6 +2,7 @@
 #include "actor.hpp"
 #include "color.hpp"
 #include "rect.hpp"
+#include "serialize.hpp"
 
 namespace Moth {
 
