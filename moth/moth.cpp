@@ -1,4 +1,5 @@
 #include "moth.hpp"
+#include "color.hpp"
 #include "context.hpp"
 
 #include <chrono>
@@ -70,12 +71,12 @@ auto Moth::draw(Rect rect, Color color) -> void {
 			&rectImpl);
 }
 
-auto Moth::clear() -> void {
+auto Moth::clear(Moth::Color color) -> void {
     SDL_SetRenderDrawColor(ctx.renderer,
-			0x00,
-			0x00,
-			0x00,
-			0x00);
+			color.r,
+			color.g,
+			color.b,
+			color.a);
 	SDL_RenderClear(ctx.renderer);
 }
 

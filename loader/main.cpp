@@ -104,7 +104,6 @@ auto main() -> int {
 		actor->update();
 		Moth::clear();
 		actor->draw();
-		//Moth::draw(rect, color);
 		Moth::display();
 		std::this_thread::sleep_for(tickRate);
 	}
@@ -112,78 +111,3 @@ auto main() -> int {
 	actorDynLib.destroy(actor);
 	actorDynLib.free();
 }
-
-/*
-auto main() -> int {
-	const auto tickRate = std::chrono::milliseconds(16);
-	Moth::init();
-
-	while(Moth::lives()) {
-
-		const float x = std::cos(Moth::timeAlive() * 0.002f) * 16;
-		const float y = std::sin(Moth::timeAlive() * 0.002f) * 16;
-
-		const auto rect = Moth::Rect{
-			.x = 130.f + x,
-			.y = 130.f + y,
-			.w = 64.f,
-			.h = 63.f,
-		};
-
-		const auto color = Moth::Color{
-			.r = 255,
-			.g = 0,
-			.b = 0,
-			.a = 255,
-		};
-
-		Moth::clear();
-		Moth::draw(rect, color);
-		Moth::display();
-		std::this_thread::sleep_for(tickRate);
-	}
-
-	Moth::free();
-}
-*/
-
-/*
-auto main() -> int {
-	Moth::init();
-	recompile();
-	auto actorDynLib = loadActorDynLib(libPath, hppPath);
-	if(!actorDynLib.ok()) {
-		std::cerr << "Could not open handle " << dlerror() << '\n';
-		return 1;
-	}
-
-	const auto tickRate = std::chrono::milliseconds(1000);
-	auto watcher = FsWatcher{};
-	watcher.watch(hppPath);
-
-	auto actor = actorDynLib.create();
-
-	while(true) {
-		if(watcher.hasChanged()) {
-
-			actorDynLib.destroy(actor);
-			actorDynLib.free();
-			recompile();
-
-			actorDynLib = loadActorDynLib(libPath, hppPath);
-			if(!actorDynLib.ok()) {
-				std::cerr << "Could not reload handle " << dlerror() << '\n';
-				return 2;
-			}
-			actor = actorDynLib.create();
-		}
-
-		actor->update();
-		actor->draw();
-		std::this_thread::sleep_for(tickRate);
-	}
-
-	actorDynLib.destroy(actor);
-	actorDynLib.free();
-}
-*/

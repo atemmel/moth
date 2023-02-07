@@ -16,7 +16,7 @@ auto timeAlive() -> float;
 
 auto draw(Rect rect, Color color) -> void;
 
-auto clear() -> void;
+auto clear(Color color = Color{0, 0, 0, 0,}) -> void;
 
 auto display() -> void;
 

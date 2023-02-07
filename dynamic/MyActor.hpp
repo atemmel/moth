@@ -5,23 +5,26 @@
 
 struct MyActor : public Moth::Actor {
 
-	int i, j;
-	std::string name;
+	float phi;
+	const float dphi = 0.02f;
 
-	SERIALIZE(MyActor, i, j, name);
+	SERIALIZE(MyActor,
+		phi);
 
 	MyActor() 
-		: i(1), j(2), name("gamers") {
-
+		: phi(-3.14565f / 2.f) {
 	}
 
 	auto update() -> void override {
-		std::cout << (*this) << '\n';
+		//std::cout << (*this) << '\n';
 	}
 
 	auto draw() -> void override {
-		const float x = std::cos(Moth::timeAlive() * 0.02f) * 64;
-		const float y = std::sin(Moth::timeAlive() * 0.02f) * 64;
+
+		phi += dphi;
+
+		const float x = std::cos(phi) * 64;
+		const float y = std::sin(phi) * 64;
 
 		const auto rect = Moth::Rect{
 			.x = 300.f + x,
