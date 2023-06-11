@@ -2,6 +2,7 @@
 #include "color.hpp"
 #include "context.hpp"
 
+#include <SDL2/SDL.h>
 #include <chrono>
 #include <iostream>
 
@@ -55,10 +56,10 @@ auto Moth::timeAlive() -> float {
 auto Moth::draw(Rect rect, Color color) -> void {
 	//TODO: rounding conversion
 	auto rectImpl = SDL_Rect{
-		.x = rect.x,
-		.y = rect.y,
-		.w = rect.w,
-		.h = rect.h,
+		.x = static_cast<int>(rect.x),
+		.y = static_cast<int>(rect.y),
+		.w = static_cast<int>(rect.w),
+		.h = static_cast<int>(rect.h),
 	};
 
 	SDL_SetRenderDrawColor(ctx.renderer,
