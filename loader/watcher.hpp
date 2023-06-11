@@ -24,7 +24,7 @@ public:
 private:
 	using Timestamp = std::filesystem::file_time_type;
 
-	Timestamp read() {
+	auto read() -> Timestamp {
 		std::error_code ec;
 		auto current = std::filesystem::last_write_time(path, ec);
 		if(ec) {
