@@ -12,45 +12,48 @@ const common_flags = &[_][]const u8{
     "-Wswitch-enum",
 };
 
-const lib_flags = &[_][]const u8{
-    "-lSDL2",
-};
-
 const vendor_path = "vendor/";
 const lib_path = vendor_path ++ "lib";
 const include_path = vendor_path ++ "include";
 
-fn buildMothLib(b: *std.Build, target: Target, optimize: Optimize) *Lib {
-    const lib = b.addStaticLibrary(.{
+fn buildMothLib(b: *std.Build, target: Target, optimize: Optimize) void {
+    const lib = b.addSharedLibrary(.{
         .name = "libmoth",
         .target = target,
         .optimize = optimize,
     });
     lib.addCSourceFiles(&.{
         "moth/moth.cpp",
-    }, common_flags ++ lib_flags);
+        "moth/dynlib.cpp",
+    }, common_flags);
+    lib.defineCMacro("_WIN32", null);
     lib.linkLibC();
     lib.linkLibCpp();
     lib.addLibraryPath(lib_path);
     lib.addIncludePath(include_path);
-    return lib;
+    lib.addObjectFile(lib_path ++ "/SDL2.lib");
+    b.installArtifact(lib);
 }
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const libmoth = buildMothLib(b, target, optimize);
+    buildMothLib(b, target, optimize);
     const exe = b.addExecutable(.{
         .name = "moth",
         .target = target,
         .optimize = optimize,
+        .linkage = .dynamic,
     });
     exe.addIncludePath("loader");
     exe.addCSourceFiles(&.{
         "loader/main.cpp",
     }, common_flags);
+    exe.defineCMacro("_WIN32", null);
     exe.linkLibC();
     exe.linkLibCpp();
-    exe.linkLibrary(libmoth);
+    exe.addObjectFile("zig-out/lib/libmoth.lib");
+    exe.addObjectFile(lib_path ++ "/SDL2.lib");
+    exe.addObjectFile(lib_path ++ "/SDL2main.lib");
     b.installArtifact(exe);
 }

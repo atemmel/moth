@@ -1,7 +1,6 @@
 #include "../moth/moth.hpp"
+#include "../moth/dynlib.hpp"
 #include "watcher.hpp"
-
-#include <dlfcn.h>
 
 #include <cmath>
 #include <chrono>
@@ -19,17 +18,17 @@ auto recompile() -> void {
 }
 
 struct ActorDynLib {
-	void* handle = nullptr;
+	Moth::DynlibHandle handle = {0};
 	Moth::CreateActorFn create = nullptr;
 	Moth::DestroyActorFn destroy = nullptr;
 
 	auto ok() const -> bool {
-		return handle != nullptr;
+		return Moth::okHandle(handle);
 	}
 
 	auto free() -> void {
-		dlclose(handle);
-		handle = nullptr;
+		Moth::closeLib(handle);
+		handle = {0};
 		create = nullptr;
 		destroy = nullptr;
 	}
@@ -44,7 +43,7 @@ auto getDynLibFnStr(const std::string& hppname, const std::string& prefix) -> st
 
 auto loadActorDynLib(const std::string& lib, const std::string& hpp) -> ActorDynLib {
 	std::cerr << "Trying to load " <<  lib << '\n';
-	auto handle = dlopen(lib.data(), RTLD_NOW | RTLD_LOCAL);
+	auto handle = Moth::openLib(lib);
 	if(!handle) {
 		return ActorDynLib{};
 	}
@@ -52,12 +51,12 @@ auto loadActorDynLib(const std::string& lib, const std::string& hpp) -> ActorDyn
 	auto createStr = getDynLibFnStr(hpp, "create_");
 	auto destroyStr = getDynLibFnStr(hpp, "destroy_");
 
-	auto create = (Moth::CreateActorFn)dlsym(handle, createStr.c_str());
-	auto destroy = (Moth::DestroyActorFn)dlsym(handle, destroyStr.c_str());
+	auto create = (Moth::CreateActorFn)Moth::getAddrOfFn(handle, createStr.c_str());
+	auto destroy = (Moth::DestroyActorFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
 	
 	std::cerr << createStr << " : " << destroyStr <<  '\n';
 	if(create == nullptr || destroy == nullptr) {
-		dlclose(handle);
+		Moth::closeLib(handle);
 		return ActorDynLib{};
 	}
 
@@ -74,7 +73,8 @@ auto reload(ActorDynLib& lib, Moth::Actor** actor) -> bool {
 	recompile();
 	lib = loadActorDynLib(libPath, hppPath);
 	if(!lib.ok()) {
-		std::cerr << "Could not reload handle " << dlerror() << '\n';
+		//std::cerr << "Could not reload handle " << dlerror() << '\n';
+		std::cerr << "Could not reload handle\n";
 		return false;
 	}
 	*actor = lib.create();
@@ -87,7 +87,8 @@ auto main() -> int {
 	recompile();
 	auto actorDynLib = loadActorDynLib(libPath, hppPath);
 	if(!actorDynLib.ok()) {
-		std::cerr << "Could not open handle " << dlerror() << '\n';
+		//std::cerr << "Could not open handle " << dlerror() << '\n';
+		std::cerr << "Could not open handle\n";
 		return 1;
 	}
 

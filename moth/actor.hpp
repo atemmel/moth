@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dynlib.hpp"
 #include <type_traits>
 
 namespace Moth {
@@ -23,9 +24,9 @@ using DestroyActorFn = void (*)(const Actor*);
 	static_assert(std::is_base_of<Moth::Actor, ACTOR_IMPL>(), \
 		"ExportActor requires that the class inherits from Actor"); \
 	\
-	extern "C" auto create_##ACTOR_IMPL() -> Moth::Actor*; \
+	extern MOTH_EXPORT_DYNLIB "C" auto create_##ACTOR_IMPL() -> Moth::Actor*; \
 	\
-	extern "C" auto destroy_##ACTOR_IMPL(Moth::Actor* a) -> void;
+	extern MOTH_EXPORT_DYNLIB "C" auto destroy_##ACTOR_IMPL(Moth::Actor* a) -> void;
 
 #define ExportActorCppMacro(ACTOR_IMPL) \
 	static_assert(std::is_base_of<Moth::Actor, ACTOR_IMPL>(), \

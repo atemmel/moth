@@ -2,9 +2,9 @@
 #include "color.hpp"
 #include "context.hpp"
 
-#include <SDL2/SDL.h>
 #include <chrono>
 #include <iostream>
+#include <SDL2/SDL.h>
 
 static Moth::Ctx ctx;
 
