@@ -6,9 +6,9 @@
 #endif
 
 #ifdef _WIN32
-	#define MOTH_EXPORT_DYNLIB __declspec(dllexport)
+	#define MOTH_EXTERN __declspec(dllexport)
 #else
-	#define MOTH_EXPORT_DYNLIB
+	#define MOTH_EXTERN
 #endif
 
 namespace Moth {

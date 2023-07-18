@@ -24,9 +24,9 @@ using DestroyActorFn = void (*)(const Actor*);
 	static_assert(std::is_base_of<Moth::Actor, ACTOR_IMPL>(), \
 		"ExportActor requires that the class inherits from Actor"); \
 	\
-	extern MOTH_EXPORT_DYNLIB "C" auto create_##ACTOR_IMPL() -> Moth::Actor*; \
+	extern "C" MOTH_EXTERN auto create_##ACTOR_IMPL() -> Moth::Actor*; \
 	\
-	extern MOTH_EXPORT_DYNLIB "C" auto destroy_##ACTOR_IMPL(Moth::Actor* a) -> void;
+	extern "C" MOTH_EXTERN auto destroy_##ACTOR_IMPL(Moth::Actor* a) -> void;
 
 #define ExportActorCppMacro(ACTOR_IMPL) \
 	static_assert(std::is_base_of<Moth::Actor, ACTOR_IMPL>(), \

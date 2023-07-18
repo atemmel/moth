@@ -36,7 +36,7 @@ struct MyActor : public Moth::Actor {
 		const auto color = Moth::Color{
 			.r = 255,
 			.g = 0,
-			.b = 0,
+			.b = 255,
 			.a = 255,
 		};
 

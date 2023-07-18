@@ -1,6 +1,7 @@
 *.so
 *.dll
 *.lib
+*.exe
 loader/loader
 vgcore.*
 zig-*

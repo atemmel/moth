@@ -9,8 +9,10 @@
 #include <string_view>
 #include <thread>
 
+//const std::string hppPath = "../dynamic/MyActor.hpp";
+//const std::string libPath = "../dynamic/moth_dynlib.so";
 const std::string hppPath = "../dynamic/MyActor.hpp";
-const std::string libPath = "../dynamic/moth_dynlib.so";
+const std::string libPath = "MyActor.dll";
 
 auto recompile() -> void {
 	system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
