@@ -1,6 +1,6 @@
 #include "dynlib.hpp"
 
-#include <string>
+#include <system_error>
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -37,5 +37,14 @@ auto Moth::okHandle(Moth::DynlibHandle handle) -> bool {
 	return handle != 0;
 #elif __linux__
 	return handle != nullptr;
+#endif
+}
+
+auto Moth::dynlibError() -> String {
+#ifdef _WIN32
+	auto err = GetLastError();
+	return std::system_category().message(err);
+#elif __linux__
+	return dlerror();
 #endif
 }

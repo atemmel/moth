@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include "types.hpp"
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -27,5 +27,7 @@ auto closeLib(DynlibHandle handle) -> void;
 auto getAddrOfFn(DynlibHandle handle, const std::string& fnName) -> void*;
 
 auto okHandle(DynlibHandle handle) -> bool;
+
+auto dynlibError() -> String;
 
 }

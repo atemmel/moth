@@ -19,7 +19,7 @@ auto recompile() -> void {
 	system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
 }
 
-struct ActorDynLib {
+struct ActorDynlib {
 	Moth::DynlibHandle handle = {0};
 	Moth::CreateActorFn create = nullptr;
 	Moth::DestroyActorFn destroy = nullptr;
@@ -36,22 +36,22 @@ struct ActorDynLib {
 	}
 };
 
-auto getDynLibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
+auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
 	size_t last = hppname.find_last_of('.');
 	size_t first = hppname.find_last_of('/') + 1;
 	auto base = hppname.substr(first, last - first);
 	return prefix + base;
 }
 
-auto loadActorDynLib(const std::string& lib, const std::string& hpp) -> ActorDynLib {
+auto loadActorDynlib(const std::string& lib, const std::string& hpp) -> ActorDynlib {
 	std::cerr << "Trying to load " <<  lib << '\n';
 	auto handle = Moth::openLib(lib);
 	if(!handle) {
-		return ActorDynLib{};
+		return ActorDynlib{};
 	}
 
-	auto createStr = getDynLibFnStr(hpp, "create_");
-	auto destroyStr = getDynLibFnStr(hpp, "destroy_");
+	auto createStr = getDynlibFnStr(hpp, "create_");
+	auto destroyStr = getDynlibFnStr(hpp, "destroy_");
 
 	auto create = (Moth::CreateActorFn)Moth::getAddrOfFn(handle, createStr.c_str());
 	auto destroy = (Moth::DestroyActorFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
@@ -59,24 +59,23 @@ auto loadActorDynLib(const std::string& lib, const std::string& hpp) -> ActorDyn
 	std::cerr << createStr << " : " << destroyStr <<  '\n';
 	if(create == nullptr || destroy == nullptr) {
 		Moth::closeLib(handle);
-		return ActorDynLib{};
+		return ActorDynlib{};
 	}
 
-	return ActorDynLib{
+	return ActorDynlib{
 		.handle = handle,
 		.create = create,
 		.destroy = destroy,
 	};
 }
 
-auto reload(ActorDynLib& lib, Moth::Actor** actor) -> bool {
+auto reload(ActorDynlib& lib, Moth::Actor** actor) -> bool {
 	lib.destroy(*actor);
 	lib.free();
 	recompile();
-	lib = loadActorDynLib(libPath, hppPath);
+	lib = loadActorDynlib(libPath, hppPath);
 	if(!lib.ok()) {
-		//std::cerr << "Could not reload handle " << dlerror() << '\n';
-		std::cerr << "Could not reload handle\n";
+		std::cerr << "Could not reload handle " << Moth::dynlibError() << '\n';
 		return false;
 	}
 	*actor = lib.create();
@@ -87,21 +86,20 @@ auto main() -> int {
 	const auto tickRate = std::chrono::milliseconds(16);
 
 	recompile();
-	auto actorDynLib = loadActorDynLib(libPath, hppPath);
-	if(!actorDynLib.ok()) {
-		//std::cerr << "Could not open handle " << dlerror() << '\n';
-		std::cerr << "Could not open handle\n";
+	auto actorDynlib = loadActorDynlib(libPath, hppPath);
+	if(!actorDynlib.ok()) {
+		std::cerr << "Could not open handle " << Moth::dynlibError() << '\n';
 		return 1;
 	}
 
 	auto watcher = FsWatcher{};
 	watcher.watch(hppPath);
 
-	auto actor = actorDynLib.create();
+	auto actor = actorDynlib.create();
 
 	Moth::init();
 	while(Moth::lives()) {
-		if(watcher.hasChanged() && !reload(actorDynLib, &actor)) {
+		if(watcher.hasChanged() && !reload(actorDynlib, &actor)) {
 			return 2;
 		}
 		actor->update();
@@ -111,6 +109,6 @@ auto main() -> int {
 		std::this_thread::sleep_for(tickRate);
 	}
 	Moth::free();
-	actorDynLib.destroy(actor);
-	actorDynLib.free();
+	actorDynlib.destroy(actor);
+	actorDynlib.free();
 }
