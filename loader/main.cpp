@@ -1,13 +1,15 @@
-#include "../moth/moth.hpp"
-#include "../moth/dynlib.hpp"
+#include "../lib/moth.hpp"
+#include "../lib/dynlib.hpp"
 #include "watcher.hpp"
 
+#include <cstdio>
 #include <cmath>
 #include <chrono>
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <unistd.h>
 
 //const std::string hppPath = "../dynamic/MyActor.hpp";
 //const std::string libPath = "../dynamic/moth_dynlib.so";
@@ -44,7 +46,7 @@ auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> st
 }
 
 auto loadActorDynlib(const std::string& lib, const std::string& hpp) -> ActorDynlib {
-	std::cerr << "Trying to load " <<  lib << '\n';
+	std::cout << "Trying to load " <<  lib << '\n';
 	auto handle = Moth::openLib(lib);
 	if(!handle) {
 		return ActorDynlib{};
@@ -56,7 +58,7 @@ auto loadActorDynlib(const std::string& lib, const std::string& hpp) -> ActorDyn
 	auto create = (Moth::CreateActorFn)Moth::getAddrOfFn(handle, createStr.c_str());
 	auto destroy = (Moth::DestroyActorFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
 	
-	std::cerr << createStr << " : " << destroyStr <<  '\n';
+	std::cout << createStr << " : " << destroyStr <<  '\n';
 	if(create == nullptr || destroy == nullptr) {
 		Moth::closeLib(handle);
 		return ActorDynlib{};
@@ -75,20 +77,27 @@ auto reload(ActorDynlib& lib, Moth::Actor** actor) -> bool {
 	recompile();
 	lib = loadActorDynlib(libPath, hppPath);
 	if(!lib.ok()) {
-		std::cerr << "Could not reload handle " << Moth::dynlibError() << '\n';
+		std::cout << "Could not reload handle " << Moth::dynlibError() << '\n';
 		return false;
 	}
 	*actor = lib.create();
 	return true;
 }
 
+bool reloading = false;
+bool badThread = false;
+
 auto main() -> int {
+	if(isatty(fileno(stdin)) != 0) {
+		std::cout << "Loader run as a standalone process, exiting...\n";
+		return 4;
+	}
 	const auto tickRate = std::chrono::milliseconds(16);
 
 	recompile();
 	auto actorDynlib = loadActorDynlib(libPath, hppPath);
 	if(!actorDynlib.ok()) {
-		std::cerr << "Could not open handle " << Moth::dynlibError() << '\n';
+		std::cout << "Could not open handle " << Moth::dynlibError() << '\n';
 		return 1;
 	}
 
@@ -97,18 +106,60 @@ auto main() -> int {
 
 	auto actor = actorDynlib.create();
 
+	std::cout << "Waiting to read...\n";
+
+	Vector<char> buffer;
+	buffer.resize(2048);
+	auto thread = std::thread([&](){
+READ_STDIN:
+		//std::cout << "Reading stdin..." << std::endl;
+		/*
+		auto addr = ::fgets(buffer.data(), buffer.size(), stdin);
+		if(addr == nullptr) {
+			std::cout << "Whoopdiedoo\n";
+			return;
+		}
+		*/
+		String msg;
+		std::getline(std::cin, msg, '\n');
+		//auto msg = StringView(addr);
+		std::cout << msg << std::endl;
+		if(msg == "reload\n") {
+			reloading = true;
+			if(!reload(actorDynlib, &actor)) {
+				badThread = true;
+				return;
+			} else {
+				reloading = false;
+			}
+		}
+		std::this_thread::sleep_for(tickRate);
+		goto READ_STDIN;
+	});
+	thread.detach();
+
+	std::cout << "Moth init" << std::endl;
 	Moth::init();
-	while(Moth::lives()) {
+	while(Moth::lives() && !badThread) {
+		std::cout << "New iter" << std::endl;
+		/*
 		if(watcher.hasChanged() && !reload(actorDynlib, &actor)) {
 			return 2;
 		}
-		actor->update();
-		Moth::clear();
-		actor->draw();
-		Moth::display();
+		*/
+		if(reloading) {
+			std::cout << "Skipped..." << std::endl;
+		} else {
+			actor->update();
+			Moth::clear();
+			actor->draw();
+			Moth::display();
+		}
 		std::this_thread::sleep_for(tickRate);
 	}
+	std::cout << "Exiting..." << std::endl;
 	Moth::free();
 	actorDynlib.destroy(actor);
 	actorDynlib.free();
+	//thread.join();
 }

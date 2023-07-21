@@ -1,5 +1,5 @@
 #pragma once
-#include "../moth/moth.hpp"
+#include "../lib/moth.hpp"
 
 #include <cmath>
 

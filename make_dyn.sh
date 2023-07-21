@@ -1,4 +1,5 @@
 #!/bin/sh
+echo "make_dyn.sh"
 cxx="x86_64-w64-mingw32-c++"
 #cxx="g++"
 # Unix flags:
@@ -11,7 +12,7 @@ cxx="x86_64-w64-mingw32-c++"
 	-Wall -Wextra -Wshadow -Wswitch-enum \
 	-D_WIN32 -D_MING \
 	-Idynamic \
-	-Imoth \
+	-Ilib \
 	dynamic/MyActor.cpp \
 	-Lbuild \
 	-lmoth \
