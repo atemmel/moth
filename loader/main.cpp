@@ -1,48 +1,51 @@
-#include "../lib/moth.hpp"
-#include "../lib/context.hpp"
-#include "../lib/dynlib.hpp"
-#include "watcher.hpp"
+#include "context.hpp"
+#include <internal.hpp>
 
 #include <cstdio>
 #include <cmath>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <thread>
 
 constexpr auto tickRate = std::chrono::milliseconds(16);
 
-const std::string hppPath = "../dynamic/MyScene.hpp";
-
+std::string baseScene;
 std::string libPath;
+moth::Scene* scene;
+Set<String> registeredScenes;
 
-auto recompile() -> void {
-	std::cout << "Attempt to recompile" << std::endl;
+//auto recompile() -> void {
 	//system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
 	//system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
-}
+//}
+
+struct SceneFns {
+	moth::CreateSceneFn create = nullptr;
+	moth::DestroySceneFn destroy = nullptr;
+};
 
 struct SceneDynlib {
-	Moth::DynlibHandle handle = {0};
-	Moth::CreateSceneFn create = nullptr;
-	Moth::DestroySceneFn destroy = nullptr;
+	moth::internal::DynlibHandle handle = {0};
+	Map<String, SceneFns> scenes;
 
 	auto ok() const -> bool {
-		return Moth::okHandle(handle);
+		return moth::internal::okHandle(handle);
 	}
 
 	auto free() -> void {
-		Moth::closeLib(handle);
+		scenes[baseScene].destroy(scene);
+		moth::internal::closeLib(handle);
 		handle = {0};
-		create = nullptr;
-		destroy = nullptr;
+		scenes.clear();
 	}
 };
 
 SceneDynlib dynlib;
-Moth::Scene* scene;
+std::mutex libmutex;
 
 auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
 	size_t last = hppname.find_last_of('.');
@@ -51,42 +54,53 @@ auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> st
 	return prefix + base;
 }
 
-auto loadSceneDynlib(const std::string& lib, const std::string& hpp) -> SceneDynlib {
+auto loadSceneDynlib(const std::string& lib, Set<String> scenes) -> SceneDynlib {
+	if(moth::context.currentScene != nullptr) {
+		moth::context.currentScene = nullptr;
+	}
 	std::cerr << "Trying to load " <<  lib << '\n';
-	auto handle = Moth::openLib(lib);
-	if(!handle) {
+	SceneDynlib newDynlib;
+	newDynlib.handle = moth::internal::openLib(lib);
+	if(!newDynlib.ok()) {
+		std::cerr << "Error: " << moth::internal::dynlibError() << '\n';
 		return SceneDynlib{};
 	}
 
-	auto createStr = getDynlibFnStr(hpp, "create_");
-	auto destroyStr = getDynlibFnStr(hpp, "destroy_");
 
-	auto create = (Moth::CreateSceneFn)Moth::getAddrOfFn(handle, createStr.c_str());
-	auto destroy = (Moth::DestroySceneFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
-	
-	std::cout << createStr << " : " << destroyStr <<  '\n';
-	if(create == nullptr || destroy == nullptr) {
-		Moth::closeLib(handle);
-		return SceneDynlib{};
+	for(const auto& sceneName : scenes) {
+		auto createStr = "create_" + sceneName;
+		auto destroyStr = "destroy_" + sceneName;
+
+		auto create = (moth::CreateSceneFn)moth::internal::getAddrOfFn(newDynlib.handle, createStr.c_str());
+		auto destroy = (moth::DestroySceneFn)moth::internal::getAddrOfFn(newDynlib.handle, destroyStr.c_str());
+		
+		std::cout << createStr << " : " << destroyStr <<  '\n';
+		if(create == nullptr || destroy == nullptr) {
+			std::cout << "Not found\n";
+			newDynlib.free();
+			return SceneDynlib{};
+		}
+
+		std::cout << "Found\n";
+		newDynlib.scenes.insert({sceneName, {create, destroy}});
 	}
+	return newDynlib;
+}
 
-	return SceneDynlib{
-		.handle = handle,
-		.create = create,
-		.destroy = destroy,
-	};
+auto instantiateScene() -> void {
+	scene = dynlib.scenes[baseScene].create();
+	moth::context.currentScene = scene;
 }
 
 auto reload() -> bool {
-	dynlib.destroy(scene);
+	std::cout << dynlib.ok() << '\n';
 	dynlib.free();
-	recompile();
-	dynlib = loadSceneDynlib(libPath, hppPath);
+	dynlib = loadSceneDynlib(libPath, registeredScenes);
 	if(!dynlib.ok()) {
-		std::cerr << "Could not reload handle " << Moth::dynlibError() << '\n';
+		std::cerr << "Could not reload handle " << moth::internal::dynlibError() << '\n';
 		return false;
 	}
-	scene = dynlib.create();
+	instantiateScene();
 	return true;
 }
 
@@ -96,63 +110,69 @@ bool shouldDie = false;
 auto ipcThread() -> void {
 		String msg;
 READ_STDIN:
+		if(shouldDie) {
+			return;
+		}
 		std::getline(std::cin, msg, '\n');
+		if(shouldDie) {
+			return;
+		}
+		std::scoped_lock lock(libmutex);
 		std::cout << msg << std::endl;
-		if(msg == "reload\n") {
+		if(msg.starts_with("reload")) {
 			reloading = true;
-			if(!reload()) {
-				shouldDie = true;
-				return;
-			} else {
-				reloading = false;
-			}
+		} else if(msg.starts_with("register:")) {
+
 		}
 		goto READ_STDIN;
 }
 
 auto main(int argc, char** argv) -> int {
 	if(argc < 2) {
-		std::cerr << "DLL to load not specified, exiting..." << std::endl;
+		std::cerr << "Base scene not specified, exiting..." << std::endl;
 		return 4;
 	}
 
-	libPath = argv[1];
+	baseScene = argv[1];
+	libPath = (std::filesystem::current_path() / "build/shared.dll").string();
 	std::cout << "libPath: '" << libPath << '\'' << std::endl;
+	std::cout << "baseScene: '" << baseScene << '\'' << std::endl;
 
-	recompile();
-	auto sceneDynlib = loadSceneDynlib(libPath, hppPath);
-	if(!sceneDynlib.ok()) {
-		std::cerr << "Could not open handle " << Moth::dynlibError() << '\n';
+	registeredScenes.insert(baseScene);
+
+	dynlib = loadSceneDynlib(libPath, registeredScenes);
+	if(!dynlib.ok()) {
+		std::cerr << "Could not open handle " << moth::internal::dynlibError() << '\n';
 		return 1;
 	}
 
-	auto watcher = FsWatcher{};
-	watcher.watch(hppPath);
-
-	scene =sceneDynlib.create();
+	instantiateScene();
 
 	std::cout << "Waiting to read...\n";
 
 	auto thread = std::thread(&ipcThread);
 	thread.detach();
 
-	std::cout << "Moth init" << std::endl;
-	Moth::init();
-	Moth::context.currentScene = scene;
-	while(Moth::lives() && !shouldDie) {
+	std::cout << "moth init" << std::endl;
+	moth::internal::init();
+	while(moth::internal::lives() && !shouldDie) {
+		std::scoped_lock lock(libmutex);
 		if(reloading) {
-			std::cout << "Skipped..." << std::endl;
+			if(!reload()) {
+				shouldDie = true;
+			} 
+			reloading = false;
 		} else {
-			Moth::update();
-			scene->update();
-			Moth::clear();
-			scene->draw();
-			Moth::display();
+			moth::internal::update();
+			moth::clear();
+			moth::internal::draw();
+			moth::internal::display();
 		}
 		std::this_thread::sleep_for(tickRate);
 	}
 	shouldDie = true;
-	Moth::free();
-	sceneDynlib.destroy(scene);
-	sceneDynlib.free();
+	std::cout << "Freeing scene\n";
+	dynlib.free();
+	std::cout << "Internal free scene\n";
+	moth::internal::free();
 }

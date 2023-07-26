@@ -5,15 +5,17 @@ cxx="g++"
 	#-Wall -Wextra -Wshadow -Wswitch-enum \
 	#moth.lib \
 	#|| exit 1
-lib_path='/home/temmel/.local/share/moth'
+moth_path='/home/temmel/.local/share/moth'
 
 "$cxx" \
-	-o $lib_path/loader \
-	-ldl \
+	-g \
+	-o $moth_path/bin/loader \
 	-std=c++20 \
 	-Wall -Wextra -Wshadow -Wswitch-enum \
 	loader/main.cpp \
-	-L$lib_path \
+	-I$moth_path/include \
+	-L$moth_path/bin \
+	-ldl \
 	-lmoth \
-	-Wl,-rpath -Wl,$lib_path \
+	-Wl,-rpath -Wl,$moth_path/bin \
 	|| exit 1

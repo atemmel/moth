@@ -29,7 +29,7 @@ func init() {
 }
 
 func main() {
-	cmd := exec.Command(mpath("loader"), dll)
+	cmd := exec.Command(mpath("bin/loader"), dll)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	rawIn, err := cmd.StdinPipe()
@@ -41,6 +41,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	in.WriteString("register:EmptyScene\n")
+	in.Flush()
 	time.Sleep(time.Second * 2)
 	in.WriteString("reload\n")
 	in.Flush()

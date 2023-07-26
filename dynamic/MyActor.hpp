@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-struct MyActor : public Moth::Actor {
+struct MyActor : public moth::Actor {
 
 	float phi;
 	const float dphi = 0.02f;
@@ -26,21 +26,21 @@ struct MyActor : public Moth::Actor {
 		const float x = std::cos(phi) * 64;
 		const float y = std::sin(phi) * 64;
 
-		const auto rect = Moth::Rect{
+		const auto rect = moth::Rect{
 			.x = 300.f + x,
 			.y = 200.f + y,
 			.w = 64.f,
 			.h = 64.f,
 		};
 
-		const auto color = Moth::Color{
+		const auto color = moth::Color{
 			.r = 255,
 			.g = 0,
 			.b = 255,
 			.a = 255,
 		};
 
-		Moth::draw(rect, color);
+		moth::draw(rect, color);
 	}
 };
 

@@ -1,23 +1,21 @@
 #pragma once
+#include "moth.hpp"
+#include "dynlib.hpp"
 
-#define ExportClassHppMacro(BASE, IMPL, MSG) \
-	static_assert(std::is_base_of<BASE, IMPL>(), MSG); \
-	\
-	extern "C" MOTH_EXTERN auto create_##IMPL() -> BASE*; \
-	\
-	extern "C" MOTH_EXTERN auto destroy_##IMPL(BASE* a) -> void;
+namespace moth::internal {
 
-#define ExportClassCppMacro(BASE, IMPL, MSG) \
-	static_assert(std::is_base_of<BASE, IMPL>(), MSG); \
-	\
-	extern "C" auto create_##IMPL() -> BASE* { \
-		return new (IMPL)(); \
-	} \
-	\
-	extern "C" auto destroy_##IMPL(BASE* a) -> void { \
-		delete a; \
-	}
+auto init() -> void;
 
-#define ExportClassMacro(BASE, IMPL, MSG) \
-	ExportClassHppMacro(BASE, IMPL, MSG) \
-	ExportClassCppMacro(BASE, IMPL, MSG)
+auto free() -> void;
+
+auto lives() -> bool;
+
+auto timeAlive() -> float;
+
+auto update() -> void;
+
+auto draw() -> void;
+
+auto display() -> void;
+
+}

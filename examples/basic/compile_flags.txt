@@ -1,0 +1,4 @@
+-std=c++20
+-Ivendor/include
+-Imoth
+-I/home/temmel/.local/share/moth/include

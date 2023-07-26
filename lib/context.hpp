@@ -4,7 +4,7 @@
 #include "vendor.hpp"
 #include "types.hpp"
 
-namespace Moth {
+namespace moth {
 
 struct Context;
 

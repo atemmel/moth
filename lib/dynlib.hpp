@@ -11,14 +11,15 @@
 	#define MOTH_EXTERN
 #endif
 
-namespace Moth {
+namespace moth {
+
+namespace internal {
 
 #ifdef _WIN32
 	using DynlibHandle = HINSTANCE;
 #else
 	using DynlibHandle = void*;
 #endif
-
 	
 auto openLib(const std::string& lib) -> DynlibHandle;
 
@@ -29,5 +30,7 @@ auto getAddrOfFn(DynlibHandle handle, const String& fnName) -> void*;
 auto okHandle(DynlibHandle handle) -> bool;
 
 auto dynlibError() -> String;
+
+}
 
 }

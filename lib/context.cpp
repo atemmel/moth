@@ -2,12 +2,12 @@
 #include "common.hpp"
 #include <iostream>
 
-Moth::Context Moth::context {};
+moth::Context moth::context {};
 
-auto Moth::ctx() -> Context& {
+auto moth::ctx() -> Context& {
 	return context;
 }
 
-auto Moth::changeScene(Scene* scene) -> void {
+auto moth::changeScene(Scene* scene) -> void {
 	context.nextScene = scene;
 }

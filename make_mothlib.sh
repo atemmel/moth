@@ -1,15 +1,21 @@
 #!/bin/sh
 cxx="g++"
 
-lib_path='/home/temmel/.local/share/moth'
+moth_path='/home/temmel/.local/share/moth'
+
+mkdir -p $moth_path/include
+mkdir -p $moth_path/bin
+
+cp lib/*.hpp $moth_path/include/
 
 "$cxx" \
+	-g \
 	-fPIC \
 	-shared \
-	-o $lib_path/libmoth.a \
+	-o $moth_path/bin/libmoth.a \
 	-std=c++20 \
 	-Wall -Wextra -Wshadow -Wswitch-enum \
 	lib/*.cpp \
 	-ldl \
 	-lSDL2 \
-	-Wl,--out-implib,$lib_path/libmoth.a.so \
+	-Wl,--out-implib,$moth_path/bin/libmoth.a.so \

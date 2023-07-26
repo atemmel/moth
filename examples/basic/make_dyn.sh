@@ -2,6 +2,7 @@
 echo "make_dyn.sh"
 cxx="g++"
 moth_path='/home/temmel/.local/share/moth'
+mkdir -p build
 # Unix flags:
 #-Wl,-export-dynamic \
 "$cxx" \
@@ -12,7 +13,7 @@ moth_path='/home/temmel/.local/share/moth'
 	-Wall -Wextra -Wshadow -Wswitch-enum \
 	-Idynamic \
 	-I$moth_path/include \
-	dynamic/*.cpp \
+	src/*.cpp \
 	-L$moth_path/bin \
 	-lmoth \
 	|| exit 1

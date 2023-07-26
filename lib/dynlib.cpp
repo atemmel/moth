@@ -8,7 +8,7 @@
 	#include <dlfcn.h>
 #endif
 
-auto Moth::openLib(const std::string& lib) -> Moth::DynlibHandle {
+auto moth::internal::openLib(const std::string& lib) -> moth::internal::DynlibHandle {
 #ifdef _WIN32
 	return LoadLibrary(lib.data());
 #elif __linux__
@@ -16,7 +16,7 @@ auto Moth::openLib(const std::string& lib) -> Moth::DynlibHandle {
 #endif
 }
 
-auto Moth::closeLib(Moth::DynlibHandle handle) -> void {
+auto moth::internal::closeLib(moth::internal::DynlibHandle handle) -> void {
 #ifdef _WIN32
 	FreeLibrary(handle);
 #elif __linux__
@@ -24,7 +24,7 @@ auto Moth::closeLib(Moth::DynlibHandle handle) -> void {
 #endif
 }
 
-auto Moth::getAddrOfFn(Moth::DynlibHandle handle, const std::string& fnName) -> void* {
+auto moth::internal::getAddrOfFn(moth::internal::DynlibHandle handle, const std::string& fnName) -> void* {
 #ifdef _WIN32
 	return (void*)GetProcAddress(handle, fnName.c_str());
 #elif __linux__
@@ -32,7 +32,7 @@ auto Moth::getAddrOfFn(Moth::DynlibHandle handle, const std::string& fnName) -> 
 #endif
 }
 
-auto Moth::okHandle(Moth::DynlibHandle handle) -> bool {
+auto moth::internal::okHandle(moth::internal::DynlibHandle handle) -> bool {
 #ifdef _WIN32
 	return handle != 0;
 #elif __linux__
@@ -40,7 +40,7 @@ auto Moth::okHandle(Moth::DynlibHandle handle) -> bool {
 #endif
 }
 
-auto Moth::dynlibError() -> String {
+auto moth::internal::dynlibError() -> String {
 #ifdef _WIN32
 	auto err = GetLastError();
 	return std::system_category().message(err);

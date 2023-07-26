@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Moth {
+namespace moth {
 
 struct Color {
 	uint8_t r = 0u,

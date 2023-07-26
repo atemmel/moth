@@ -4,7 +4,7 @@
 #include "../lib/scene.hpp"
 #include "../lib/common.hpp"
 
-struct MyScene : public Moth::Scene {
+struct MyScene : public moth::Scene {
 	MyActor* actorA;
 	MyActor* actorB;
 

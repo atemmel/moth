@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Moth {
+namespace moth {
 
 struct Rect {
 	float x = 0.f,

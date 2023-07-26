@@ -1,7 +1,7 @@
 #pragma once
 #include "actor.hpp"
 
-namespace Moth {
+namespace moth {
 
 struct Scene {
 	Vector<Ptr<Actor>> actors;
@@ -28,21 +28,21 @@ using DestroySceneFn = void (*)(const Scene*);
 
 }
 #define ExportSceneHppMacro(SCENE_IMPL) \
-	static_assert(std::is_base_of<Moth::Scene, SCENE_IMPL>(), \
+	static_assert(std::is_base_of<moth::Scene, SCENE_IMPL>(), \
 		"ExportScene requires that the class inherits from Scene"); \
 	\
-	extern "C" MOTH_EXTERN auto create_##SCENE_IMPL() -> Moth::Scene*; \
+	extern "C" MOTH_EXTERN auto create_##SCENE_IMPL() -> moth::Scene*; \
 	\
-	extern "C" MOTH_EXTERN auto destroy_##SCENE_IMPL(Moth::Scene* a) -> void;
+	extern "C" MOTH_EXTERN auto destroy_##SCENE_IMPL(moth::Scene* a) -> void;
 
 #define ExportSceneCppMacro(SCENE_IMPL) \
-	static_assert(std::is_base_of<Moth::Scene, SCENE_IMPL>(), \
+	static_assert(std::is_base_of<moth::Scene, SCENE_IMPL>(), \
 		"ExportScene requires that the class inherits from Scene"); \
 	\
-	extern "C" auto create_##SCENE_IMPL() -> Moth::Scene* { \
+	extern "C" auto create_##SCENE_IMPL() -> moth::Scene* { \
 		return new (SCENE_IMPL)(); \
 	} \
 	\
-	extern "C" auto destroy_##SCENE_IMPL(Moth::Scene* a) -> void { \
+	extern "C" auto destroy_##SCENE_IMPL(moth::Scene* a) -> void { \
 		delete a; \
 	}
