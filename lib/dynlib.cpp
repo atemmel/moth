@@ -45,6 +45,7 @@ auto Moth::dynlibError() -> String {
 	auto err = GetLastError();
 	return std::system_category().message(err);
 #elif __linux__
-	return dlerror();
+	auto err = dlerror();
+	return err == nullptr ? "" : err;
 #endif
 }

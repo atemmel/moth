@@ -7,11 +7,12 @@ lib_path='/home/temmel/.local/share/moth'
 "$cxx" \
 	-fPIC \
 	-shared \
-	-o build/MyActor.dll \
+	-o build/shared.dll \
 	-std=c++20 \
 	-Wall -Wextra -Wshadow -Wswitch-enum \
 	-Idynamic \
 	-Ilib \
-	dynamic/MyActor.cpp \
+	dynamic/*.cpp \
 	-L$lib_path \
 	-lmoth \
+	|| exit 1

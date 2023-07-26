@@ -5,15 +5,15 @@
 
 namespace Moth {
 
-class Actor {
-public:
+struct Actor {
 	Actor() {};
 	virtual ~Actor() {};
 
-	virtual auto update() -> void = 0;
-	virtual auto draw() -> void = 0;
-};
+	virtual auto update() -> void {};
+	virtual auto draw() -> void {};
 
+	Id kind;
+};
 
 using CreateActorFn = Actor* (*)();
 using DestroyActorFn = void (*)(const Actor*);

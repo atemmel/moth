@@ -14,15 +14,14 @@ auto lives() -> bool;
 
 auto timeAlive() -> float;
 
+auto update() -> void;
+
+auto draw() -> void;
+
 auto draw(Rect rect, Color color) -> void;
 
 auto clear(Color color = Color{0, 0, 0, 0,}) -> void;
 
 auto display() -> void;
 
-
-struct Ctx;
-
-auto context() -> Ctx&;
-	
 }

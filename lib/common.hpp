@@ -15,6 +15,8 @@ auto has(Map<K, V>& map, const K& key) -> V* {
 	return &(it->second);
 }
 
+auto check(bool condition) -> void;
+
 auto unreachable() -> void;
 
 auto unimplemented() -> void;

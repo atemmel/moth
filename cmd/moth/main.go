@@ -2,16 +2,36 @@ package main
 
 import (
 	"bufio"
+	"github.com/atemmel/tflags"
 	"os"
 	"os/exec"
 	"time"
 )
 
-func main() {
+var (
+	home string
+	dll string
+)
 
-	//cmd := exec.Command("./loader.exe")
-	cmd := exec.Command("/home/temmel/.local/share/moth/loader")
+func mpath(file string) string {
+	const suffix = ".local/share/moth/"
+	return home + suffix + file
+}
+
+func init() {
+	home = os.Getenv("HOME") + "/"
+	tflags.String(&dll, &tflags.Meta{
+		Long: "dll",
+		Short: "d",
+		Help: "dll to use",
+	});
+	tflags.Parse()
+}
+
+func main() {
+	cmd := exec.Command(mpath("loader"), dll)
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	rawIn, err := cmd.StdinPipe()
 	if err != nil {
 		panic(err)

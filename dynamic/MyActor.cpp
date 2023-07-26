@@ -1,2 +1,2 @@
 #include "MyActor.hpp"
-ExportActorCppMacro(MyActor);
+ExportActorCppMacro(MyActor)

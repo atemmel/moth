@@ -1,4 +1,5 @@
 #include "../lib/moth.hpp"
+#include "../lib/context.hpp"
 #include "../lib/dynlib.hpp"
 #include "watcher.hpp"
 
@@ -10,22 +11,23 @@
 #include <string>
 #include <string_view>
 #include <thread>
-#include <unistd.h>
 
-//const std::string hppPath = "../dynamic/MyActor.hpp";
-//const std::string libPath = "../dynamic/moth_dynlib.so";
-const std::string hppPath = "../dynamic/MyActor.hpp";
-const std::string libPath = (std::filesystem::current_path() / "MyActor.dll").string();
+constexpr auto tickRate = std::chrono::milliseconds(16);
+
+const std::string hppPath = "../dynamic/MyScene.hpp";
+
+std::string libPath;
 
 auto recompile() -> void {
-	system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
-	system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
+	std::cout << "Attempt to recompile" << std::endl;
+	//system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
+	//system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
 }
 
-struct ActorDynlib {
+struct SceneDynlib {
 	Moth::DynlibHandle handle = {0};
-	Moth::CreateActorFn create = nullptr;
-	Moth::DestroyActorFn destroy = nullptr;
+	Moth::CreateSceneFn create = nullptr;
+	Moth::DestroySceneFn destroy = nullptr;
 
 	auto ok() const -> bool {
 		return Moth::okHandle(handle);
@@ -39,6 +41,9 @@ struct ActorDynlib {
 	}
 };
 
+SceneDynlib dynlib;
+Moth::Scene* scene;
+
 auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
 	size_t last = hppname.find_last_of('.');
 	size_t first = hppname.find_last_of('/') + 1;
@@ -46,121 +51,108 @@ auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> st
 	return prefix + base;
 }
 
-auto loadActorDynlib(const std::string& lib, const std::string& hpp) -> ActorDynlib {
-	std::cout << "Trying to load " <<  lib << '\n';
+auto loadSceneDynlib(const std::string& lib, const std::string& hpp) -> SceneDynlib {
+	std::cerr << "Trying to load " <<  lib << '\n';
 	auto handle = Moth::openLib(lib);
 	if(!handle) {
-		return ActorDynlib{};
+		return SceneDynlib{};
 	}
 
 	auto createStr = getDynlibFnStr(hpp, "create_");
 	auto destroyStr = getDynlibFnStr(hpp, "destroy_");
 
-	auto create = (Moth::CreateActorFn)Moth::getAddrOfFn(handle, createStr.c_str());
-	auto destroy = (Moth::DestroyActorFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
+	auto create = (Moth::CreateSceneFn)Moth::getAddrOfFn(handle, createStr.c_str());
+	auto destroy = (Moth::DestroySceneFn)Moth::getAddrOfFn(handle, destroyStr.c_str());
 	
 	std::cout << createStr << " : " << destroyStr <<  '\n';
 	if(create == nullptr || destroy == nullptr) {
 		Moth::closeLib(handle);
-		return ActorDynlib{};
+		return SceneDynlib{};
 	}
 
-	return ActorDynlib{
+	return SceneDynlib{
 		.handle = handle,
 		.create = create,
 		.destroy = destroy,
 	};
 }
 
-auto reload(ActorDynlib& lib, Moth::Actor** actor) -> bool {
-	lib.destroy(*actor);
-	lib.free();
+auto reload() -> bool {
+	dynlib.destroy(scene);
+	dynlib.free();
 	recompile();
-	lib = loadActorDynlib(libPath, hppPath);
-	if(!lib.ok()) {
-		std::cout << "Could not reload handle " << Moth::dynlibError() << '\n';
+	dynlib = loadSceneDynlib(libPath, hppPath);
+	if(!dynlib.ok()) {
+		std::cerr << "Could not reload handle " << Moth::dynlibError() << '\n';
 		return false;
 	}
-	*actor = lib.create();
+	scene = dynlib.create();
 	return true;
 }
 
 bool reloading = false;
-bool badThread = false;
+bool shouldDie = false;
 
-auto main() -> int {
-	if(isatty(fileno(stdin)) != 0) {
-		std::cout << "Loader run as a standalone process, exiting...\n";
+auto ipcThread() -> void {
+		String msg;
+READ_STDIN:
+		std::getline(std::cin, msg, '\n');
+		std::cout << msg << std::endl;
+		if(msg == "reload\n") {
+			reloading = true;
+			if(!reload()) {
+				shouldDie = true;
+				return;
+			} else {
+				reloading = false;
+			}
+		}
+		goto READ_STDIN;
+}
+
+auto main(int argc, char** argv) -> int {
+	if(argc < 2) {
+		std::cerr << "DLL to load not specified, exiting..." << std::endl;
 		return 4;
 	}
-	const auto tickRate = std::chrono::milliseconds(16);
+
+	libPath = argv[1];
+	std::cout << "libPath: '" << libPath << '\'' << std::endl;
 
 	recompile();
-	auto actorDynlib = loadActorDynlib(libPath, hppPath);
-	if(!actorDynlib.ok()) {
-		std::cout << "Could not open handle " << Moth::dynlibError() << '\n';
+	auto sceneDynlib = loadSceneDynlib(libPath, hppPath);
+	if(!sceneDynlib.ok()) {
+		std::cerr << "Could not open handle " << Moth::dynlibError() << '\n';
 		return 1;
 	}
 
 	auto watcher = FsWatcher{};
 	watcher.watch(hppPath);
 
-	auto actor = actorDynlib.create();
+	scene =sceneDynlib.create();
 
 	std::cout << "Waiting to read...\n";
 
-	Vector<char> buffer;
-	buffer.resize(2048);
-	auto thread = std::thread([&](){
-READ_STDIN:
-		//std::cout << "Reading stdin..." << std::endl;
-		/*
-		auto addr = ::fgets(buffer.data(), buffer.size(), stdin);
-		if(addr == nullptr) {
-			std::cout << "Whoopdiedoo\n";
-			return;
-		}
-		*/
-		String msg;
-		std::getline(std::cin, msg, '\n');
-		//auto msg = StringView(addr);
-		std::cout << msg << std::endl;
-		if(msg == "reload\n") {
-			reloading = true;
-			if(!reload(actorDynlib, &actor)) {
-				badThread = true;
-				return;
-			} else {
-				reloading = false;
-			}
-		}
-		std::this_thread::sleep_for(tickRate);
-		goto READ_STDIN;
-	});
+	auto thread = std::thread(&ipcThread);
 	thread.detach();
 
 	std::cout << "Moth init" << std::endl;
 	Moth::init();
-	while(Moth::lives() && !badThread) {
-		std::cout << "New iter" << std::endl;
-		/*
-		if(watcher.hasChanged() && !reload(actorDynlib, &actor)) {
-			return 2;
-		}
-		*/
+	Moth::context.currentScene = scene;
+	while(Moth::lives() && !shouldDie) {
 		if(reloading) {
 			std::cout << "Skipped..." << std::endl;
 		} else {
-			actor->update();
+			Moth::update();
+			scene->update();
 			Moth::clear();
-			actor->draw();
+			scene->draw();
 			Moth::display();
 		}
 		std::this_thread::sleep_for(tickRate);
 	}
-	std::cout << "Exiting..." << std::endl;
+	shouldDie = true;
 	Moth::free();
-	actorDynlib.destroy(actor);
-	actorDynlib.free();
-	//thread.join();
+	sceneDynlib.destroy(scene);
+	sceneDynlib.free();
 }

@@ -6,3 +6,4 @@ loader/loader
 vgcore.*
 build/
 moth
+!cmd/moth
