@@ -1,7 +1,7 @@
 #!/bin/sh
-echo "make_dyn.sh"
-cxx="g++"
-lib_path='/home/temmel/.local/share/moth'
+echo "make_dyn_wsl.sh"
+cxx="x86_64-w64-mingw32-c++"
+#cxx="g++"
 # Unix flags:
 #-Wl,-export-dynamic \
 "$cxx" \
@@ -10,8 +10,9 @@ lib_path='/home/temmel/.local/share/moth'
 	-o build/MyActor.dll \
 	-std=c++20 \
 	-Wall -Wextra -Wshadow -Wswitch-enum \
+	-D_WIN32 -D_MING \
 	-Idynamic \
 	-Ilib \
 	dynamic/MyActor.cpp \
-	-L$lib_path \
+	-Lbuild \
 	-lmoth \

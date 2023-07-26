@@ -1,15 +1,15 @@
 #!/bin/sh
-cxx="x86_64-w64-mingw32-c++"
-#cxx="g++"
+cxx="g++"
+
+lib_path='/home/temmel/.local/share/moth'
+
 "$cxx" \
 	-fPIC \
 	-shared \
-	-o build/libmoth.dll \
+	-o $lib_path/libmoth.a \
 	-std=c++20 \
 	-Wall -Wextra -Wshadow -Wswitch-enum \
-	-D_WIN32 -D_MING \
-	-Ivendor/include \
 	lib/*.cpp \
-	-Lvendor/lib \
+	-ldl \
 	-lSDL2 \
-	-Wl,--out-implib,build/libmoth.dll.lib \
+	-Wl,--out-implib,$lib_path/libmoth.a.so \

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cmath>
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -14,7 +15,7 @@
 //const std::string hppPath = "../dynamic/MyActor.hpp";
 //const std::string libPath = "../dynamic/moth_dynlib.so";
 const std::string hppPath = "../dynamic/MyActor.hpp";
-const std::string libPath = "MyActor.dll";
+const std::string libPath = (std::filesystem::current_path() / "MyActor.dll").string();
 
 auto recompile() -> void {
 	system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");

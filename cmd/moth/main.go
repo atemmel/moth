@@ -8,7 +8,9 @@ import (
 )
 
 func main() {
-	cmd := exec.Command("./loader.exe")
+
+	//cmd := exec.Command("./loader.exe")
+	cmd := exec.Command("/home/temmel/.local/share/moth/loader")
 	cmd.Stdout = os.Stdout
 	rawIn, err := cmd.StdinPipe()
 	if err != nil {
@@ -26,4 +28,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type CompileTarget int
+
+const (
+	Linux CompileTarget = 0
+	Windows = iota
+)
+
+type CompileArgs struct {
+	Compiler string
+	Target CompileTarget
+	ImportLib bool
+	OutName string
+	OutDir string
+}
+
+func compile(args CompileArgs) error {
+	return nil
 }
