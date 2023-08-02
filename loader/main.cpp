@@ -18,6 +18,9 @@ std::string libPath;
 moth::Scene* scene;
 Set<String> registeredScenes;
 
+bool reloading = false;
+bool shouldDie = false;
+
 //auto recompile() -> void {
 	//system("cd ../dynamic && ./make_dyn.sh moth_dynlib_tmp.so");
 	//system("cd ../dynamic && mv -f moth_dynlib_tmp.so moth_dynlib.so");
@@ -47,13 +50,6 @@ struct SceneDynlib {
 SceneDynlib dynlib;
 std::mutex libmutex;
 
-auto getDynlibFnStr(const std::string& hppname, const std::string& prefix) -> std::string {
-	size_t last = hppname.find_last_of('.');
-	size_t first = hppname.find_last_of('/') + 1;
-	auto base = hppname.substr(first, last - first);
-	return prefix + base;
-}
-
 auto loadSceneDynlib(const std::string& lib, Set<String> scenes) -> SceneDynlib {
 	if(moth::context.currentScene != nullptr) {
 		moth::context.currentScene = nullptr;
@@ -65,7 +61,6 @@ auto loadSceneDynlib(const std::string& lib, Set<String> scenes) -> SceneDynlib 
 		std::cerr << "Error: " << moth::internal::dynlibError() << '\n';
 		return SceneDynlib{};
 	}
-
 
 	for(const auto& sceneName : scenes) {
 		auto createStr = "create_" + sceneName;
@@ -103,9 +98,6 @@ auto reload() -> bool {
 	instantiateScene();
 	return true;
 }
-
-bool reloading = false;
-bool shouldDie = false;
 
 auto ipcThread() -> void {
 		String msg;

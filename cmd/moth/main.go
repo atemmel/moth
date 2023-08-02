@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
-	"github.com/atemmel/tflags"
+	"fmt"
+	"mothcli/pkg/compile"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/atemmel/tflags"
 )
 
 var (
@@ -14,8 +17,22 @@ var (
 )
 
 func mpath(file string) string {
-	const suffix = ".local/share/moth/"
-	return home + suffix + file
+	const prefix = ".local/share/moth/"
+	return home + prefix + file
+}
+
+func defaultArgs() compile.Args {
+	return compile.Args{
+		IncludeDirs: []string{
+			"src/",
+			mpath("include"),
+		},
+		LibDir: mpath("bin"),
+		OutDir: "build",
+		OutName: "shared.dll",
+		Release: false,
+		Target: compile.Linux,
+	}
 }
 
 func init() {
@@ -29,6 +46,12 @@ func init() {
 }
 
 func main() {
+	args := defaultArgs()
+	fmt.Println("Building lib...")
+	err := compile.Lib(args)
+	if err != nil {
+		panic(err)
+	}
 	cmd := exec.Command(mpath("bin/loader"), dll)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -50,23 +73,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-type CompileTarget int
-
-const (
-	Linux CompileTarget = 0
-	Windows = iota
-)
-
-type CompileArgs struct {
-	Compiler string
-	Target CompileTarget
-	ImportLib bool
-	OutName string
-	OutDir string
-}
-
-func compile(args CompileArgs) error {
-	return nil
 }
