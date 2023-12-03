@@ -12,17 +12,17 @@ import (
 type Target int
 
 const (
-	Linux Target = 0
-	Windows = iota
+	Linux   Target = 0
+	Windows        = iota
 )
 
 type Args struct {
 	IncludeDirs []string
-	LibDir string
-	OutDir string
-	OutName string
-	Release bool
-	Target Target
+	LibDir      string
+	OutDir      string
+	OutName     string
+	Release     bool
+	Target      Target
 }
 
 func Lib(args Args) error {
@@ -61,7 +61,7 @@ func Lib(args Args) error {
 		"-Wswitch-enum",
 	}
 
-	src := filepath.Join(cwd, "src") + "/*.cpp"
+	src := filepath.Join(cwd, "src", "/*.cpp")
 	fmt.Println(src)
 	srcs, err := filepath.Glob(src)
 	if err != nil {
@@ -77,7 +77,7 @@ func Lib(args Args) error {
 	arglist := make([]string, 0, 32)
 
 	arglist = append(arglist, dyn...)
-	arglist = append(arglist, "-o " + out, std)
+	arglist = append(arglist, "-o", out, std)
 	arglist = append(arglist, warn...)
 	arglist = append(arglist, includedirs...)
 	arglist = append(arglist, srcs...)
